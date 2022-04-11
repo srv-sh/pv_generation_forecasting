@@ -11,6 +11,9 @@ from joblib import load
 from icecream import ic
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import math, random
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_absolute_error as mae
+from sklearn.metrics import r2_score
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s %(message)s", datefmt="[%Y-%m-%d %H:%M:%S]")
 logger = logging.getLogger(__name__)
@@ -19,7 +22,7 @@ def flip_from_probability(p):
     return True if random.random() < p else False
 
 def transformer(dataloader, EPOCH, k, frequency, path_to_save_model, path_to_save_loss, path_to_save_predictions, device):
-
+    EPOCH =10
     device = torch.device(device)
 
     model = Transformer().float().to(device)
@@ -82,6 +85,19 @@ def transformer(dataloader, EPOCH, k, frequency, path_to_save_model, path_to_sav
             optimizer.step()
             train_loss += loss.detach().item()
 
+            mse = mean_squared_error(target[:,0,0].numpy(), prediction[:,0,0].numpy())
+            print("Mean square error : " + str(mse))
+
+
+            error = mae(target[:,0,0].numpy(), prediction[:,0,0].numpy())
+            print("Mean absolute error : " + str(error))
+
+
+            r2 = r2_score(target[:,0,0].numpy(), prediction[:,0,0].numpy())
+            print('r2 score for perfect model is', r2)
+
+
+
         if train_loss < min_train_loss:
             torch.save(model.state_dict(), path_to_save_model + f"best_train_{epoch}.pth")
             torch.save(optimizer.state_dict(), path_to_save_model + f"optimizer_{epoch}.pth")
@@ -89,7 +105,7 @@ def transformer(dataloader, EPOCH, k, frequency, path_to_save_model, path_to_sav
             best_model = f"best_train_{epoch}.pth"
 
 
-        if epoch % 10 == 0: # Plot 1-Step Predictions
+        if epoch % 2 == 0: # Plot 1-Step Predictions
 
             logger.info(f"Epoch: {epoch}, Training loss: {train_loss}")
             scaler_feature = load('scalar_feature.joblib')
